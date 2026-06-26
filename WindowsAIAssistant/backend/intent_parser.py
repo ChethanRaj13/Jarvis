@@ -31,15 +31,26 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
-from WindowsAIAssistant.backend.WindowsAIAssistant.backend.schemas import (
-    Entity,
-    EntityExtraction,
-    IntentClassification,
-    IntentType,
-    RiskAssessment,
-    RiskLevel,
-    StructuredIntent,
-)
+try:
+    from schemas import (
+        Entity,
+        EntityExtraction,
+        IntentClassification,
+        IntentType,
+        RiskAssessment,
+        RiskLevel,
+        StructuredIntent,
+    )
+except ModuleNotFoundError:  # pragma: no cover - fallback for package-style imports
+    from .schemas import (
+        Entity,
+        EntityExtraction,
+        IntentClassification,
+        IntentType,
+        RiskAssessment,
+        RiskLevel,
+        StructuredIntent,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -1,18 +1,30 @@
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+
 namespace windowsAssistant.UI.Services;
 
 public class ExecutionService
 {
-    public List<string> Execute(List<string> steps)
-    {
-        List<string> executionLogs = new();
+    private readonly ApiClient _apiClient = new();
 
-        foreach (var step in steps)
+    public async Task<List<string>> ExecuteAsync(List<string> steps)
+    {
+        if (steps == null)
         {
-            executionLogs.Add($"Executing: {step}");
+            steps = new List<string>();
         }
 
-        executionLogs.Add("Execution Completed");
-
-        return executionLogs;
+        var response = await _apiClient.PostJsonAsync<ExecutionApiResponse>("/execute", new { steps, verify = true });
+        return response?.Logs ?? new List<string>();
     }
+}
+
+public class ExecutionApiResponse
+{
+    [JsonPropertyName("logs")]
+    public List<string> Logs { get; set; } = new();
+
+    [JsonPropertyName("verification")]
+    public object? Verification { get; set; }
 }

@@ -10,12 +10,11 @@ namespace windowsAssistant.UI;
 
 public partial class MainWindow : Window
 {
-    // PlanningService kept here in case you still use it elsewhere (e.g. to
-    // turn a StructuredIntent into executable steps). Remove if unused.
-    private PlanningService planningService = new PlanningService();
-    private ExecutionService executionService = new ExecutionService();
+    private readonly PlanningService planningService = new();
+    private readonly ExecutionService executionService = new();
+    private readonly VerificationService verificationService = new();
 
-    private List<ChatMessage> chatHistory = new();
+    private readonly List<ChatMessage> chatHistory = new();
     private List<string> currentPlan = new();
 
     public MainWindow()
@@ -54,8 +53,8 @@ public partial class MainWindow : Window
         SendButton.IsEnabled = false;
         CommandInput.IsEnabled = false;
 
-        // Generate plan
-        currentPlan = planningService.GeneratePlan(userMessage);
+        // Generate plan from the backend API
+        currentPlan = await planningService.GeneratePlanAsync(userMessage);
 
         // Store assistant response
         string assistantReply = string.Join("\n", currentPlan);
@@ -105,7 +104,7 @@ public partial class MainWindow : Window
 
             ApproveButton.Visibility = Visibility.Visible;
         }
-        catch (IntentApiException ex)
+        catch (Exception ex)
         {
             TextBlock errorBlock = new TextBlock
             {
@@ -124,14 +123,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ApproveButton_Click(object sender, RoutedEventArgs e)
+    private async void ApproveButton_Click(object sender, RoutedEventArgs e)
     {
         TaskStatusText.Text = "Executing";
 
         TaskProgressBar.Value = 50;
         ProgressText.Text = "50%";
 
-        var logs = executionService.Execute(currentPlan);
+        var logs = await executionService.ExecuteAsync(currentPlan);
 
         foreach (var log in logs)
         {
@@ -146,6 +145,18 @@ public partial class MainWindow : Window
 
             ChatPanel.Children.Add(logBlock);
         }
+
+        var verificationSummary = await verificationService.VerifyAsync(currentPlan, TaskNameText.Text);
+        TextBlock verificationBlock = new TextBlock
+        {
+            Text = "Assistant: Verification -> " + verificationSummary,
+            Foreground = Brushes.LightSkyBlue,
+            FontSize = 14,
+            Margin = new Thickness(0, 8, 0, 8),
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        ChatPanel.Children.Add(verificationBlock);
 
         TaskProgressBar.Value = 100;
         ProgressText.Text = "100%";
