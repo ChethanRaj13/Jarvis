@@ -1,12 +1,16 @@
 namespace windowsAssistant.UI.Models;
 
-public class TaskState
+public enum TaskState
 {
-    public string TaskName { get; set; } = "";
-
-    public string Status { get; set; } = "";
-
-    public int Progress { get; set; }
-
-    public string CurrentStep { get; set; } = "";
+    Created,
+    Planned,
+    Queued,
+    Executing,
+    Verifying,
+    Completed,
+    Failed,
+    Cancelled,
+    Paused,
+    Retrying,
+    Timeout
 }
