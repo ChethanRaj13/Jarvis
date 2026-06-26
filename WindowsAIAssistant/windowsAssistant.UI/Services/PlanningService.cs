@@ -1,124 +1,54 @@
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+
 namespace windowsAssistant.UI.Services;
 
 public class PlanningService
 {
-    public List<string> GeneratePlan(string command)
+    private readonly ApiClient _apiClient = new();
+
+    public async Task<List<string>> GeneratePlanAsync(string command)
     {
-        command = command.ToLower();
-
-        // INSTALL / SETUP
-        if (command.Contains("install") || command.Contains("setup"))
+        if (string.IsNullOrWhiteSpace(command))
         {
-            return new List<string>
-            {
-                "Analyze Installation Requirements",
-                "Download Required Files",
-                "Install Application",
-                "Configure Environment",
-                "Verify Installation"
-            };
+            return new List<string>();
         }
 
-        // DELETE
-        if (command.Contains("delete") || command.Contains("remove"))
-        {
-            return new List<string>
-            {
-                "Locate Target",
-                "Check Permissions",
-                "Delete Resource",
-                "Verify Deletion"
-            };
-        }
-
-        // COPY
-        if (command.Contains("copy"))
-        {
-            return new List<string>
-            {
-                "Locate Source",
-                "Locate Destination",
-                "Copy Files",
-                "Verify Copy"
-            };
-        }
-
-        // MOVE
-        if (command.Contains("move"))
-        {
-            return new List<string>
-            {
-                "Locate Source",
-                "Locate Destination",
-                "Move Resource",
-                "Verify Move"
-            };
-        }
-
-        // CREATE
-        if (command.Contains("create"))
-        {
-            return new List<string>
-            {
-                "Analyze Request",
-                "Create Resource",
-                "Apply Configuration",
-                "Verify Creation"
-            };
-        }
-
-        // OPEN
-        if (command.Contains("open"))
-        {
-            return new List<string>
-            {
-                "Locate Application",
-                "Launch Application",
-                "Verify Launch"
-            };
-        }
-
-        // DOWNLOAD
-        if (command.Contains("download"))
-        {
-            return new List<string>
-            {
-                "Locate Download Source",
-                "Download Files",
-                "Validate Download",
-                "Save Files"
-            };
-        }
-
-        // SHUTDOWN
-        if (command.Contains("shutdown"))
-        {
-            return new List<string>
-            {
-                "Check Running Applications",
-                "Save Pending Work",
-                "Shutdown System"
-            };
-        }
-
-        // RESTART
-        if (command.Contains("restart"))
-        {
-            return new List<string>
-            {
-                "Close Running Applications",
-                "Restart System",
-                "Verify Startup"
-            };
-        }
-
-        // DEFAULT
-        return new List<string>
-        {
-            "Analyze User Request",
-            "Generate Execution Plan",
-            "Execute Task",
-            "Verify Result"
-        };
+        var response = await _apiClient.PostJsonAsync<PlanApiResponse>("/plan", new { text = command });
+        return FlattenPlan(response);
     }
+
+    private static List<string> FlattenPlan(PlanApiResponse response)
+    {
+        var steps = new List<string>();
+        if (response?.Plan?.SubGoalPlans == null)
+        {
+            return steps;
+        }
+
+        foreach (var subGoal in response.Plan.SubGoalPlans)
+        {
+            steps.Add($"[{subGoal.SubGoalId}] {subGoal.SubGoalDescription}");
+            foreach (var step in subGoal.Steps)
+            {
+                string toolSuffix = string.IsNullOrWhiteSpace(step.ToolOrMethod)
+                    ? ""
+                    : $" [{step.ToolOrMethod}]";
+
+                steps.Add($"{step.StepNumber}. {step.Action}{toolSuffix}");
+            }
+        }
+
+        return steps;
+    }
+}
+
+public class PlanApiResponse
+{
+    [JsonPropertyName("intent")]
+    public StructuredIntent? Intent { get; set; }
+
+    [JsonPropertyName("plan")]
+    public TaskPlan? Plan { get; set; }
 }

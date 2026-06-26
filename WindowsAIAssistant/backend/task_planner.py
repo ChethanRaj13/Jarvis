@@ -29,14 +29,24 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
-from WindowsAIAssistant.backend.WindowsAIAssistant.backend.schemas import (
-    GoalDecomposition,
-    PlanStep,
-    StructuredIntent,
-    SubGoal,
-    SubGoalPlan,
-    TaskPlan,
-)
+try:
+    from schemas import (
+        GoalDecomposition,
+        PlanStep,
+        StructuredIntent,
+        SubGoal,
+        SubGoalPlan,
+        TaskPlan,
+    )
+except ModuleNotFoundError:  # pragma: no cover - fallback for package-style imports
+    from .schemas import (
+        GoalDecomposition,
+        PlanStep,
+        StructuredIntent,
+        SubGoal,
+        SubGoalPlan,
+        TaskPlan,
+    )
 
 
 class _SubGoalSteps(PydanticOutputParser):
