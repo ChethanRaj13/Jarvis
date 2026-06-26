@@ -1,24 +1,28 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj": {}
+    "C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj": {}
   },
   "projects": {
-    "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj": {
+    "C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+        "projectUniqueName": "C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
         "projectName": "windowsAssistant.UI",
-        "projectPath": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
-        "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\obj\\",
+        "projectPath": "C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+        "packagesPath": "C:\\Users\\prath\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "E:\\visualstudiocode\\sharedresoureces\\NuGetPackages"
         ],
         "configFilePaths": [
+<<<<<<< HEAD
           "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+=======
+          "C:\\Users\\prath\\AppData\\Roaming\\NuGet\\NuGet.Config",
+>>>>>>> 71ab89878448cffae9e5dd2fdea26084aebf148d
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -70,7 +74,11 @@
               "privateAssets": "none"
             }
           },
+<<<<<<< HEAD
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+=======
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
+>>>>>>> 71ab89878448cffae9e5dd2fdea26084aebf148d
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
