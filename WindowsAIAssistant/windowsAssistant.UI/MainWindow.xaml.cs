@@ -93,6 +93,8 @@ public partial class MainWindow : Window
             ChatPanel.Children.Add(stepBlock);
         }
 
+        try
+        {
             TaskNameText.Text = userMessage;
             TaskStatusText.Text = "Planning";
 
