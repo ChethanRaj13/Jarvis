@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+verification_engine/__init__.py
+verification_engine.egg-info/PKG-INFO
+verification_engine.egg-info/SOURCES.txt
+verification_engine.egg-info/dependency_links.txt
+verification_engine.egg-info/top_level.txt
