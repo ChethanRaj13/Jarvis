@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+      "projectUniqueName": "D:\\jarvis\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
       "projectName": "windowsAssistant.UI",
-      "projectPath": "D:\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+      "projectPath": "D:\\jarvis\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
       "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
-      "outputPath": "D:\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\obj\\",
+      "outputPath": "D:\\jarvis\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config"

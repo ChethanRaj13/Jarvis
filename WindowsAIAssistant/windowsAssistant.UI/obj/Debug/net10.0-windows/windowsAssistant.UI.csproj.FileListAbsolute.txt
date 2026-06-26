@@ -38,3 +38,8 @@ D:\jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\refin
 D:\jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.pdb
 D:\jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.genruntimeconfig.cache
 D:\jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\ref\windowsAssistant.UI.dll
+D:\jarvis\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\App.g.cs
+D:\jarvis\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI_MarkupCompile.cache
+D:\jarvis\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.dll
+D:\jarvis\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\refint\windowsAssistant.UI.dll
+D:\jarvis\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.pdb

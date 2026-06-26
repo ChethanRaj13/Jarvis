@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -40,8 +41,57 @@ public class StructuredIntent
     public List<string> RiskReasons { get; set; } = new();
 }
 
+public class PlanStep
+{
+    [JsonPropertyName("step_number")]
+    public int StepNumber { get; set; }
+
+    [JsonPropertyName("action")]
+    public string Action { get; set; } = string.Empty;
+
+    [JsonPropertyName("tool_or_method")]
+    public string? ToolOrMethod { get; set; }
+}
+
+public class SubGoalPlan
+{
+    [JsonPropertyName("sub_goal_id")]
+    public string SubGoalId { get; set; } = string.Empty;
+
+    [JsonPropertyName("sub_goal_description")]
+    public string SubGoalDescription { get; set; } = string.Empty;
+
+    [JsonPropertyName("depends_on")]
+    public List<string> DependsOn { get; set; } = new();
+
+    [JsonPropertyName("steps")]
+    public List<PlanStep> Steps { get; set; } = new();
+}
+
+public class TaskPlan
+{
+    [JsonPropertyName("original_intent")]
+    public StructuredIntent OriginalIntent { get; set; } = new();
+
+    [JsonPropertyName("sub_goal_plans")]
+    public List<SubGoalPlan> SubGoalPlans { get; set; } = new();
+}
+
 /// <summary>
-/// Thin HTTP client around the FastAPI Intent Parser service (api.py / POST /parse).
+/// Combined response from POST /plan: the parsed intent plus the resulting task plan.
+/// </summary>
+public class PlanResponse
+{
+    [JsonPropertyName("intent")]
+    public StructuredIntent Intent { get; set; } = new();
+
+    [JsonPropertyName("plan")]
+    public TaskPlan Plan { get; set; } = new();
+}
+
+/// <summary>
+/// Thin HTTP client around the FastAPI Intent Parser / Task Planner service
+/// (api.py / POST /parse and POST /plan).
 /// </summary>
 public class IntentApiClient
 {
@@ -64,10 +114,21 @@ public class IntentApiClient
 
     /// <summary>
     /// Sends the raw user message to the FastAPI /parse endpoint and returns
-    /// the structured intent. Throws IntentApiException on any failure so the
-    /// caller can decide how to surface it in the UI.
+    /// the structured intent only (no plan). Throws IntentApiException on any
+    /// failure so the caller can decide how to surface it in the UI.
     /// </summary>
-    public async Task<StructuredIntent> ParseAsync(string userMessage)
+    public Task<StructuredIntent> ParseAsync(string userMessage)
+        => PostAsync<StructuredIntent>("/parse", userMessage);
+
+    /// <summary>
+    /// Sends the raw user message to the FastAPI /plan endpoint, which runs
+    /// the full pipeline (IntentParser -> TaskPlanner) and returns both the
+    /// resulting intent and the task plan in one round trip.
+    /// </summary>
+    public Task<PlanResponse> PlanAsync(string userMessage)
+        => PostAsync<PlanResponse>("/plan", userMessage);
+
+    private async Task<T> PostAsync<T>(string path, string userMessage)
     {
         var payload = new { text = userMessage };
         var json = JsonSerializer.Serialize(payload);
@@ -77,7 +138,7 @@ public class IntentApiClient
         HttpResponseMessage response;
         try
         {
-            response = await _httpClient.PostAsync($"{_baseUrl}/parse", content);
+            response = await _httpClient.PostAsync($"{_baseUrl}{path}", content);
         }
         catch (HttpRequestException ex)
         {
@@ -100,7 +161,7 @@ public class IntentApiClient
 
         try
         {
-            var result = JsonSerializer.Deserialize<StructuredIntent>(responseBody, JsonOptions);
+            var result = JsonSerializer.Deserialize<T>(responseBody, JsonOptions);
             if (result is null)
                 throw new IntentApiException("Intent service returned an empty response.");
 
