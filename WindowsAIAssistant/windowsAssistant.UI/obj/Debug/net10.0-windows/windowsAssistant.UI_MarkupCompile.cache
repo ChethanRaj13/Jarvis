@@ -4,15 +4,15 @@
 winexe
 C#
 .cs
-C:\Users\prath\Downloads\agentic_ai\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\
+C:\Users\prath\Downloads\agentic_ai\jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\
 windowsAssistant.UI
 none
 false
 TRACE;DEBUG;NET;NET10_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NET10_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-C:\Users\prath\Downloads\agentic_ai\Jarvis\WindowsAIAssistant\windowsAssistant.UI\App.xaml
+C:\Users\prath\Downloads\agentic_ai\jarvis\WindowsAIAssistant\windowsAssistant.UI\App.xaml
 11407045341
 
-172056191520
+182082132280
 206-1943539212
 MainWindow.xaml;
 

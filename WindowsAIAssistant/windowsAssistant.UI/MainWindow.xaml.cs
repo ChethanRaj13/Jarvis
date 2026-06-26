@@ -1,6 +1,9 @@
-﻿using System.Windows;
+﻿using System;
+using System.Collections.Generic;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using windowsAssistant.UI.Models;
 using windowsAssistant.UI.Services;
 
 namespace windowsAssistant.UI;
@@ -8,6 +11,10 @@ namespace windowsAssistant.UI;
 public partial class MainWindow : Window
 {
     private PlanningService planningService = new PlanningService();
+    private ExecutionService executionService = new ExecutionService();
+
+    private List<ChatMessage> chatHistory = new();
+    private List<string> currentPlan = new();
 
     public MainWindow()
     {
@@ -21,6 +28,14 @@ public partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(userMessage))
             return;
 
+        // Store user message
+        chatHistory.Add(new ChatMessage
+        {
+            Sender = "User",
+            Content = userMessage
+        });
+
+        // Show user message
         TextBlock messageBlock = new TextBlock
         {
             Text = "User: " + userMessage,
@@ -32,8 +47,19 @@ public partial class MainWindow : Window
 
         ChatPanel.Children.Add(messageBlock);
 
-        var plan = planningService.GeneratePlan(userMessage);
+        // Generate plan
+        currentPlan = planningService.GeneratePlan(userMessage);
 
+        // Store assistant response
+        string assistantReply = string.Join("\n", currentPlan);
+
+        chatHistory.Add(new ChatMessage
+        {
+            Sender = "Assistant",
+            Content = assistantReply
+        });
+
+        // Show assistant heading
         TextBlock assistantHeader = new TextBlock
         {
             Text = "Assistant: Execution Plan",
@@ -45,14 +71,16 @@ public partial class MainWindow : Window
 
         ChatPanel.Children.Add(assistantHeader);
 
-        foreach (var step in plan)
+        // Show plan
+        foreach (var step in currentPlan)
         {
             TextBlock stepBlock = new TextBlock
             {
                 Text = "• " + step,
                 Foreground = Brushes.LightBlue,
                 FontSize = 14,
-                Margin = new Thickness(20, 2, 0, 2)
+                Margin = new Thickness(20, 2, 0, 2),
+                TextWrapping = TextWrapping.Wrap
             };
 
             ChatPanel.Children.Add(stepBlock);
@@ -78,15 +106,26 @@ public partial class MainWindow : Window
         TaskProgressBar.Value = 50;
         ProgressText.Text = "50%";
 
-        TextBlock executionMessage = new TextBlock
-        {
-            Text = "Assistant: Execution Started...",
-            Foreground = Brushes.LightGreen,
-            FontSize = 16,
-            Margin = new Thickness(0, 10, 0, 10)
-        };
+        var logs = executionService.Execute(currentPlan);
 
-        ChatPanel.Children.Add(executionMessage);
+        foreach (var log in logs)
+        {
+            TextBlock logBlock = new TextBlock
+            {
+                Text = "Assistant: " + log,
+                Foreground = Brushes.LightGreen,
+                FontSize = 16,
+                Margin = new Thickness(0, 8, 0, 8),
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            ChatPanel.Children.Add(logBlock);
+        }
+
+        TaskProgressBar.Value = 100;
+        ProgressText.Text = "100%";
+
+        TaskStatusText.Text = "Completed";
 
         ApproveButton.Visibility = Visibility.Collapsed;
     }
