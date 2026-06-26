@@ -1,0 +1,13 @@
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\MainWindow.g.cs
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\App.g.cs
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI_MarkupCompile.cache
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI_MarkupCompile.lref
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\MainWindow.baml
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.g.resources
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.GeneratedMSBuildEditorConfig.editorconfig
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.AssemblyInfoInputs.cache
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.AssemblyInfo.cs
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.csproj.CoreCompileInputs.cache
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.sourcelink.json
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\refint\windowsAssistant.UI.dll
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.pdb
