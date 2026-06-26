@@ -44,11 +44,7 @@ namespace windowsAssistant.UI {
         /// InitializeComponent
         /// </summary>
         [System.Diagnostics.DebuggerNonUserCodeAttribute()]
-<<<<<<< HEAD
         [System.CodeDom.Compiler.GeneratedCodeAttribute("PresentationBuildTasks", "10.0.8.0")]
-=======
-        [System.CodeDom.Compiler.GeneratedCodeAttribute("PresentationBuildTasks", "10.0.9.0")]
->>>>>>> 71ab89878448cffae9e5dd2fdea26084aebf148d
         public void InitializeComponent() {
             
             #line 5 "..\..\..\App.xaml"
@@ -63,11 +59,7 @@ namespace windowsAssistant.UI {
         /// </summary>
         [System.STAThreadAttribute()]
         [System.Diagnostics.DebuggerNonUserCodeAttribute()]
-<<<<<<< HEAD
         [System.CodeDom.Compiler.GeneratedCodeAttribute("PresentationBuildTasks", "10.0.8.0")]
-=======
-        [System.CodeDom.Compiler.GeneratedCodeAttribute("PresentationBuildTasks", "10.0.9.0")]
->>>>>>> 71ab89878448cffae9e5dd2fdea26084aebf148d
         public static void Main() {
             windowsAssistant.UI.App app = new windowsAssistant.UI.App();
             app.InitializeComponent();

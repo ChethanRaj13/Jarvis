@@ -54,3 +54,4 @@ D:\jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windo
 D:\jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.genruntimeconfig.cache
 D:\jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\ref\windowsAssistant.UI.dll
 >>>>>>> 71ab89878448cffae9e5dd2fdea26084aebf148d
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI.dll

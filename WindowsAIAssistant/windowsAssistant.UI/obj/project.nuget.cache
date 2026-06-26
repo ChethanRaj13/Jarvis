@@ -1,21 +1,17 @@
 {
   "version": 2,
-<<<<<<< HEAD
   "dgSpecHash": "jOYbeuvHCFU=",
-=======
-  "dgSpecHash": "IKcVjLiRjkE=",
->>>>>>> 71ab89878448cffae9e5dd2fdea26084aebf148d
   "success": true,
-  "projectFilePath": "C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+  "projectFilePath": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
   "expectedPackageFiles": [],
   "logs": [
     {
       "code": "Undefined",
       "level": "Warning",
-      "message": "Problem reading the cache file C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\obj\\project.nuget.cache : '<' is an invalid start of a property name. Expected a '\"'. Path: $ | LineNumber: 2 | BytePositionInLine: 0.",
-      "projectPath": "C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+      "message": "Problem reading the cache file D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\obj\\project.nuget.cache : '<' is an invalid start of a property name. Expected a '\"'. Path: $ | LineNumber: 2 | BytePositionInLine: 0.",
+      "projectPath": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\prath\\Downloads\\agentic_ai\\jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+      "filePath": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
       "targetGraphs": []
     }
   ]
