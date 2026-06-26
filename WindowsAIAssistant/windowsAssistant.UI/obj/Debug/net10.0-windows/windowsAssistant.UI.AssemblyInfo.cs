@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("windowsAssistant.UI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a6163cf1342bd88a403354c0521ad2ae0acf0bb2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eda3264d5172c77cb77b37d1fd2533ccb625fe3c")]
 [assembly: System.Reflection.AssemblyProductAttribute("windowsAssistant.UI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("windowsAssistant.UI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

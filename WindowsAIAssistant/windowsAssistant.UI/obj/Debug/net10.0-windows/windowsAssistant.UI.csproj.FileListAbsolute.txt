@@ -1,0 +1,4 @@
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\MainWindow.baml
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\MainWindow.g.cs
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\App.g.cs
+D:\Desktop\mini_project\Jarvis\WindowsAIAssistant\windowsAssistant.UI\obj\Debug\net10.0-windows\windowsAssistant.UI_MarkupCompile.cache
