@@ -10,6 +10,8 @@ namespace windowsAssistant.UI;
 
 public partial class MainWindow : Window
 {
+    // PlanningService kept here in case you still use it elsewhere (e.g. to
+    // turn a StructuredIntent into executable steps). Remove if unused.
     private PlanningService planningService = new PlanningService();
     private ExecutionService executionService = new ExecutionService();
 
@@ -21,7 +23,7 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
-    private void SendButton_Click(object sender, RoutedEventArgs e)
+    private async void SendButton_Click(object sender, RoutedEventArgs e)
     {
         string userMessage = CommandInput.Text;
 
@@ -46,6 +48,11 @@ public partial class MainWindow : Window
         };
 
         ChatPanel.Children.Add(messageBlock);
+        CommandInput.Clear();
+
+        // Disable input while we wait on the API so the user can't double-fire requests.
+        SendButton.IsEnabled = false;
+        CommandInput.IsEnabled = false;
 
         // Generate plan
         currentPlan = planningService.GeneratePlan(userMessage);
@@ -86,17 +93,33 @@ public partial class MainWindow : Window
             ChatPanel.Children.Add(stepBlock);
         }
 
-        TaskNameText.Text = userMessage;
-        TaskStatusText.Text = "Planning";
+            TaskNameText.Text = userMessage;
+            TaskStatusText.Text = "Planning";
 
-        ProgressPanel.Visibility = Visibility.Visible;
+            ProgressPanel.Visibility = Visibility.Visible;
 
-        TaskProgressBar.Value = 25;
-        ProgressText.Text = "25%";
+            TaskProgressBar.Value = 25;
+            ProgressText.Text = "25%";
 
-        ApproveButton.Visibility = Visibility.Visible;
-
-        CommandInput.Clear();
+            ApproveButton.Visibility = Visibility.Visible;
+        }
+        catch (IntentApiException ex)
+        {
+            TextBlock errorBlock = new TextBlock
+            {
+                Text = "Assistant: " + ex.Message,
+                Foreground = Brushes.OrangeRed,
+                FontSize = 14,
+                Margin = new Thickness(0, 10, 0, 10),
+                TextWrapping = TextWrapping.Wrap
+            };
+            ChatPanel.Children.Add(errorBlock);
+        }
+        finally
+        {
+            SendButton.IsEnabled = true;
+            CommandInput.IsEnabled = true;
+        }
     }
 
     private void ApproveButton_Click(object sender, RoutedEventArgs e)

@@ -144,7 +144,8 @@
                          BorderThickness="0"
                          VerticalContentAlignment="Center"/>
 
-                <Button Grid.Column="1"
+                <Button x:Name="SendButton"
+                        Grid.Column="1"
                         Margin="10,0,0,0"
                         Content="Send"
                         FontSize="16"
