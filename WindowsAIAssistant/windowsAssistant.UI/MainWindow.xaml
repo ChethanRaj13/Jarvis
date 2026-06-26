@@ -1,12 +1,162 @@
 ﻿<Window x:Class="windowsAssistant.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:windowsAssistant.UI"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Jarvis AI Assistant"
+        Height="700"
+        Width="1100"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E1E">
+
+    <Grid Margin="20">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="80"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER -->
+
+        <Border Grid.Row="0"
+                Background="#2D2D30"
+                CornerRadius="10">
+
+            <TextBlock Text="Jarvis Agentic AI Assistant"
+                       Foreground="White"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       VerticalAlignment="Center"
+                       Margin="20,0"/>
+
+        </Border>
+
+        <!-- MAIN CONTENT -->
+
+        <Grid Grid.Row="1"
+              Margin="0,15,0,15">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="1.5*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- CHAT AREA -->
+
+            <Border Grid.Column="0"
+                    Background="#252526"
+                    CornerRadius="10"
+                    Margin="0,0,10,0">
+
+                <ScrollViewer>
+
+                    <StackPanel x:Name="ChatPanel"
+                                Margin="15">
+
+                        <TextBlock Text="Welcome to Jarvis"
+                                   Foreground="White"
+                                   FontSize="20"
+                                   Margin="0,0,0,15"/>
+
+                    </StackPanel>
+
+                </ScrollViewer>
+
+            </Border>
+
+            <!-- TASK PANEL -->
+
+            <Border Grid.Column="1"
+                    Background="#252526"
+                    CornerRadius="10">
+
+                <StackPanel Margin="15">
+
+                    <TextBlock Text="Task Status"
+                               Foreground="White"
+                               FontSize="18"
+                               FontWeight="Bold"/>
+
+                    <TextBlock x:Name="TaskNameText"
+                               Text="No task running"
+                               Foreground="LightGray"
+                               Margin="0,15,0,0"/>
+
+                    <TextBlock x:Name="TaskStatusText"
+                               Text=""
+                               Foreground="Orange"
+                               Margin="0,10,0,0"/>
+
+                    <!-- PROGRESS PANEL -->
+
+                    <StackPanel x:Name="ProgressPanel"
+                                Visibility="Collapsed">
+
+                        <TextBlock Text="Progress"
+                                   Foreground="White"
+                                   Margin="0,25,0,5"/>
+
+                        <ProgressBar x:Name="TaskProgressBar"
+                                     Height="20"
+                                     Value="0"
+                                     Maximum="100"/>
+
+                        <TextBlock x:Name="ProgressText"
+                                   Text="0%"
+                                   Foreground="White"
+                                   Margin="0,10,0,0"/>
+
+                        <Button x:Name="ApproveButton"
+                                Content="Approve"
+                                Width="120"
+                                Height="40"
+                                Margin="0,20,0,0"
+                                Background="Green"
+                                Foreground="White"
+                                Visibility="Collapsed"
+                                Click="ApproveButton_Click"/>
+
+                    </StackPanel>
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
+
+        <!-- INPUT AREA -->
+
+        <Border Grid.Row="2"
+                Background="#2D2D30"
+                CornerRadius="10">
+
+            <Grid Margin="15">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="120"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="CommandInput"
+                         FontSize="16"
+                         Padding="10"
+                         Background="#3C3C3C"
+                         Foreground="White"
+                         BorderThickness="0"
+                         VerticalContentAlignment="Center"/>
+
+                <Button Grid.Column="1"
+                        Margin="10,0,0,0"
+                        Content="Send"
+                        FontSize="16"
+                        Background="#007ACC"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="SendButton_Click"/>
+
+            </Grid>
+
+        </Border>
 
     </Grid>
+
 </Window>

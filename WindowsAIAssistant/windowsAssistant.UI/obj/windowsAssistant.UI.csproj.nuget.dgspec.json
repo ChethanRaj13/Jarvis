@@ -1,29 +1,32 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj": {}
+    "C:\\Users\\prath\\Downloads\\agentic_ai\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj": {}
   },
   "projects": {
-    "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj": {
+    "C:\\Users\\prath\\Downloads\\agentic_ai\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+        "projectUniqueName": "C:\\Users\\prath\\Downloads\\agentic_ai\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
         "projectName": "windowsAssistant.UI",
-        "projectPath": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
-        "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "D:\\Desktop\\mini_project\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\obj\\",
+        "projectPath": "C:\\Users\\prath\\Downloads\\agentic_ai\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\windowsAssistant.UI.csproj",
+        "packagesPath": "C:\\Users\\prath\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\prath\\Downloads\\agentic_ai\\Jarvis\\WindowsAIAssistant\\windowsAssistant.UI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\prath\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net10.0-windows7.0": {
+          "net10.0-windows": {
+            "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {}
           }
@@ -38,10 +41,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
-        "net10.0-windows7.0": {
+        "net10.0-windows": {
+          "framework": "net10.0-windows7.0",
           "targetAlias": "net10.0-windows",
           "imports": [
             "net461",
@@ -62,7 +66,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
