@@ -25,11 +25,10 @@ from ..compat import NOTSET
 from ..compat import NotSetType
 from _pytest.config import Config
 from _pytest.deprecated import check_ispytest
-from _pytest.deprecated import PARAMETRIZE_NON_COLLECTION_ITERABLE
+from _pytest.deprecated import MARKED_FIXTURE
 from _pytest.outcomes import fail
 from _pytest.raises import AbstractRaises
-from _pytest.scope import ScopeName
-from _pytest.warning_types import PytestCollectionWarning
+from _pytest.scope import _ScopeName
 from _pytest.warning_types import PytestUnknownMarkWarning
 
 
@@ -170,12 +169,8 @@ class ParameterSet(NamedTuple):
         **kwargs,
     ) -> tuple[Sequence[str], bool]:
         if isinstance(argnames, str):
-            # A trailing comma indicates tuple-style: "arg," is equivalent to ("arg",)
-            # In this case, argvalues should be a list of tuples, not wrapped values.
-            # See https://github.com/pytest-dev/pytest/issues/719
-            has_trailing_comma = argnames.rstrip().endswith(",")
             argnames = [x.strip() for x in argnames.split(",") if x.strip()]
-            force_tuple = len(argnames) == 1 and not has_trailing_comma
+            force_tuple = len(argnames) == 1
         else:
             force_tuple = False
         return argnames, force_tuple
@@ -198,15 +193,6 @@ class ParameterSet(NamedTuple):
         config: Config,
         nodeid: str,
     ) -> tuple[Sequence[str], list[ParameterSet]]:
-        if not isinstance(argvalues, Collection):
-            warnings.warn(
-                PARAMETRIZE_NON_COLLECTION_ITERABLE.format(
-                    nodeid=nodeid,
-                    type_name=type(argvalues).__name__,
-                ),
-                stacklevel=3,
-            )
-
         argnames, force_tuple = cls._parse_parametrize_args(argnames, argvalues)
         parameters = cls._parse_parametrize_parameters(argvalues, force_tuple)
         del argvalues
@@ -412,7 +398,7 @@ class MarkDecorator:
             if isinstance(func, staticmethod | classmethod):
                 unwrapped_func = func.__func__
             if len(args) == 1 and (istestfunc(unwrapped_func) or is_class):
-                store_mark(unwrapped_func, self.mark)
+                store_mark(unwrapped_func, self.mark, stacklevel=3)
                 return func
         return self.with_args(*args, **kwargs)
 
@@ -443,18 +429,7 @@ def get_unpacked_marks(
                 mark_list.append(item)
     else:
         mark_attribute = getattr(obj, "pytestmark", [])
-        if mark_attribute is None:
-            warnings.warn(
-                "Module defines a `__getattr__` which returns None for "
-                "'pytestmark' instead of raising AttributeError. "
-                "Make sure `__getattr__` raises AttributeError for "
-                "attributes it does not provide. "
-                "See https://github.com/pytest-dev/pytest/issues/8265",
-                PytestCollectionWarning,
-                stacklevel=2,
-            )
-            mark_list = []
-        elif isinstance(mark_attribute, list):
+        if isinstance(mark_attribute, list):
             mark_list = mark_attribute
         else:
             mark_list = [mark_attribute]
@@ -478,7 +453,7 @@ def normalize_mark_list(
         yield mark_obj
 
 
-def store_mark(obj, mark: Mark) -> None:
+def store_mark(obj, mark: Mark, *, stacklevel: int = 2) -> None:
     """Store a Mark on an object.
 
     This is used to implement the Mark declarations/decorators correctly.
@@ -488,10 +463,7 @@ def store_mark(obj, mark: Mark) -> None:
     from ..fixtures import getfixturemarker
 
     if getfixturemarker(obj) is not None:
-        fail(
-            "Marks cannot be applied to fixtures.\n"
-            "See docs: https://docs.pytest.org/en/stable/deprecations.html#applying-a-mark-to-a-fixture-function"
-        )
+        warnings.warn(MARKED_FIXTURE, stacklevel=stacklevel)
 
     # Always reassign name to avoid updating pytestmark in a reference that
     # was only borrowed.
@@ -540,15 +512,12 @@ if TYPE_CHECKING:
             self,
             argnames: str | Sequence[str],
             argvalues: Iterable[ParameterSet | Sequence[object] | object],
-            # TODO(pytest10): Change to below after PARAMETRIZE_NON_COLLECTION_ITERABLE deprecation.
-            #                 Overload doesn't work, see #14606.
-            # argvalues: Collection[ParameterSet | Sequence[object] | object],
             *,
             indirect: bool | Sequence[str] = ...,
-            ids: Iterable[None | str | float | int | bool | _HiddenParam]
+            ids: Iterable[None | str | float | int | bool]
             | Callable[[Any], object | None]
             | None = ...,
-            scope: ScopeName | None = ...,
+            scope: _ScopeName | None = ...,
         ) -> MarkDecorator: ...
 
     class _UsefixturesMarkDecorator(MarkDecorator):

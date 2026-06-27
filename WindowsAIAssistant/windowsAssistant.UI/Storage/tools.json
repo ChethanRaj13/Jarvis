@@ -1,0 +1,24 @@
+[
+  {
+    "tool_id": "powershell",
+    "tool_name": "PowerShell",
+    "category": "cli",
+    "capabilities": [
+      { "capability_id": "software_installation", "name": "SoftwareInstallation", "description": "Install software using package managers or scripts" },
+      { "capability_id": "file_search", "name": "FileSearch", "description": "Search files on disk" },
+      { "capability_id": "registry_modification", "name": "RegistryModification", "description": "Modify Windows registry" },
+      { "capability_id": "download_file", "name": "DownloadFile", "description": "Download files from the internet" },
+      { "capability_id": "notification", "name": "Notification", "description": "Display user notifications" },
+      { "capability_id": "reminder", "name": "Reminder", "description": "Create reminders" }
+    ],
+    "metadata": {
+      "risk_level": "medium",
+      "timeout_seconds": 120,
+      "requires_admin": true,
+      "verification_support": true,
+      "supported_capabilities": [ "software_installation", "file_search", "registry_modification", "download_file", "notification", "reminder" ],
+      "supported_actions": [ "run_script", "install_package", "download", "notify" ]
+    },
+    "status": "Available"
+  }
+]

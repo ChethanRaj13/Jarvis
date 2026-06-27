@@ -21,7 +21,7 @@ public class ApiClient
         _baseUrl = baseUrl.TrimEnd('/');
         _httpClient = new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(30),
+            Timeout = TimeSpan.FromMinutes(5),
         };
     }
 

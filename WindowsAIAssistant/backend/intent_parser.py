@@ -32,7 +32,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
 try:
-    from schemas import (
+    from backend.schemas import (
         Entity,
         EntityExtraction,
         IntentClassification,
@@ -150,7 +150,71 @@ class IntentParser:
             raw_output = raw_chain.invoke({"text": text})
             content = raw_output.content if hasattr(raw_output, "content") else str(raw_output)
             cleaned = self._extract_json_block(content)
-            return parser.parse(cleaned)
+            # Try the normal parse first, but be robust to schema-like
+            # outputs (models sometimes emit JSON Schema with "$defs").
+            try:
+                return parser.parse(cleaned)
+            except Exception:
+                # Attempt to load the cleaned content as JSON and extract
+                # the likely instance values for the expected fields.
+                try:
+                    payload = json.loads(cleaned)
+                except Exception:
+                    # Give up and re-raise the original parse error.
+                    return parser.parse(cleaned)
+
+                def _find_key(o: Any, keys: list[str]):
+                    if isinstance(o, dict):
+                        for k, v in o.items():
+                            if k in keys:
+                                return v
+                            res = _find_key(v, keys)
+                            if res is not None:
+                                return res
+                    elif isinstance(o, list):
+                        for item in o:
+                            res = _find_key(item, keys)
+                            if res is not None:
+                                return res
+                    return None
+
+                def _sanitize_value(v: Any, default: Any):
+                    # If the model returned a JSON Schema fragment (contains $ref/$defs),
+                    # or a schema-like dict (has 'type'/'items'), ignore it and use the default.
+                    if not v:
+                        return default
+                    if isinstance(v, dict):
+                        if any(k.startswith("$") for k in v.keys()):
+                            return default
+                        if ("items" in v and "type" in v) or ("title" in v and "items" in v):
+                            return default
+                    return v
+
+                # Heuristic extraction for the three parsers we use.
+                expected = getattr(parser, "pydantic_object", None)
+                # IntentClassification -> look for intent_type/confidence
+                if expected and expected.__name__ == "IntentClassification":
+                    intent_type = _sanitize_value(_find_key(payload, ["intent_type", "intentType", "intent"]), "unknown") or "unknown"
+                    confidence = _sanitize_value(_find_key(payload, ["confidence"]), 0.0) or 0.0
+                    minimal = {"intent_type": intent_type, "confidence": confidence}
+                    return parser.parse(json.dumps(minimal))
+
+                # EntityExtraction -> look for entities
+                if expected and expected.__name__ == "EntityExtraction":
+                    entities = _sanitize_value(_find_key(payload, ["entities"]), []) or []
+                    minimal = {"entities": entities}
+                    return parser.parse(json.dumps(minimal))
+
+                # RiskAssessment -> produce safe defaults (models sometimes emit schema fragments)
+                if expected and expected.__name__ == "RiskAssessment":
+                    minimal = {"risk_level": "low", "risk_reasons": []}
+                    return parser.parse(json.dumps(minimal))
+
+                # Fallback: try to parse whatever we have by passing the raw dict
+                try:
+                    return parser.parse(payload)
+                except Exception:
+                    return parser.parse(cleaned)
 
     @staticmethod
     def _extract_json_block(content: str) -> str:

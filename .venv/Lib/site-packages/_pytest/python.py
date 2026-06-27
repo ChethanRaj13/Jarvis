@@ -45,6 +45,7 @@ from _pytest.compat import get_default_arg_names
 from _pytest.compat import get_real_func
 from _pytest.compat import getimfunc
 from _pytest.compat import is_async_function
+from _pytest.compat import LEGACY_PATH
 from _pytest.compat import NOTSET
 from _pytest.compat import safe_getattr
 from _pytest.compat import safe_isclass
@@ -52,10 +53,8 @@ from _pytest.config import Config
 from _pytest.config import hookimpl
 from _pytest.config.argparsing import Parser
 from _pytest.deprecated import check_ispytest
-from _pytest.fixtures import _resolve_args_directness
 from _pytest.fixtures import FixtureDef
 from _pytest.fixtures import FixtureRequest
-from _pytest.fixtures import FixtureValue
 from _pytest.fixtures import FuncFixtureInfo
 from _pytest.fixtures import get_scope_node
 from _pytest.main import Session
@@ -72,8 +71,8 @@ from _pytest.pathlib import fnmatch_ex
 from _pytest.pathlib import import_path
 from _pytest.pathlib import ImportPathMismatchError
 from _pytest.pathlib import scandir
+from _pytest.scope import _ScopeName
 from _pytest.scope import Scope
-from _pytest.scope import ScopeName
 from _pytest.stash import StashKey
 from _pytest.warning_types import PytestCollectionWarning
 from _pytest.warning_types import PytestReturnNotNoneWarning
@@ -591,11 +590,11 @@ class Module(nodes.File, PyCollector):
             if teardown_module is not None:
                 _call_with_optional_argument(teardown_module, module)
 
-        fixtures.register_fixture(
+        self.session._fixturemanager._register_fixture(
             # Use a unique name to speed up lookup.
             name=f"_xunit_setup_module_fixture_{self.obj.__name__}",
             func=xunit_setup_module_fixture,
-            node=self,
+            nodeid=self.nodeid,
             scope="module",
             autouse=True,
         )
@@ -627,11 +626,11 @@ class Module(nodes.File, PyCollector):
             if teardown_function is not None:
                 _call_with_optional_argument(teardown_function, function)
 
-        fixtures.register_fixture(
+        self.session._fixturemanager._register_fixture(
             # Use a unique name to speed up lookup.
             name=f"_xunit_setup_function_fixture_{self.obj.__name__}",
             func=xunit_setup_function_fixture,
-            node=self,
+            nodeid=self.nodeid,
             scope="function",
             autouse=True,
         )
@@ -654,7 +653,7 @@ class Package(nodes.Directory):
 
     def __init__(
         self,
-        fspath: None,
+        fspath: LEGACY_PATH | None,
         parent: nodes.Collector,
         # NOTE: following args are unused:
         config=None,
@@ -779,9 +778,7 @@ class Class(PyCollector):
         self._register_setup_class_fixture()
         self._register_setup_method_fixture()
 
-        self.session._fixturemanager.parsefactories(
-            holder=self.newinstance(), node=self
-        )
+        self.session._fixturemanager.parsefactories(self.newinstance(), self.nodeid)
 
         return super().collect()
 
@@ -807,11 +804,11 @@ class Class(PyCollector):
                 func = getimfunc(teardown_class)
                 _call_with_optional_argument(func, cls)
 
-        fixtures.register_fixture(
+        self.session._fixturemanager._register_fixture(
             # Use a unique name to speed up lookup.
             name=f"_xunit_setup_class_fixture_{self.obj.__qualname__}",
             func=xunit_setup_class_fixture,
-            node=self,
+            nodeid=self.nodeid,
             scope="class",
             autouse=True,
         )
@@ -841,11 +838,11 @@ class Class(PyCollector):
                 func = getattr(instance, teardown_name)
                 _call_with_optional_argument(func, method)
 
-        fixtures.register_fixture(
+        self.session._fixturemanager._register_fixture(
             # Use a unique name to speed up lookup.
             name=f"_xunit_setup_method_fixture_{self.obj.__qualname__}",
             func=xunit_setup_method_fixture,
-            node=self,
+            nodeid=self.nodeid,
             scope="function",
             autouse=True,
         )
@@ -873,6 +870,7 @@ class IdMaker:
     __slots__ = (
         "argnames",
         "config",
+        "func_name",
         "idfn",
         "ids",
         "nodeid",
@@ -895,6 +893,9 @@ class IdMaker:
     # Optionally, the ID of the node being parametrized.
     # Used only for clearer error messages.
     nodeid: str | None
+    # Optionally, the ID of the function being parametrized.
+    # Used only for clearer error messages.
+    func_name: str | None
 
     def make_unique_parameterset_ids(self) -> list[str | _HiddenParam]:
         """Make a unique identifier for each ParameterSet, that may be used to
@@ -1082,7 +1083,9 @@ class IdMaker:
         )
 
     def _make_error_prefix(self) -> str:
-        if self.nodeid is not None:
+        if self.func_name is not None:
+            return f"In {self.func_name}: "
+        elif self.nodeid is not None:
             return f"In {self.nodeid}: "
         else:
             return ""
@@ -1098,7 +1101,8 @@ class CallSpec2:
     and stored in item.callspec.
     """
 
-    # arg name -> arg value which will be passed to a fixture of the same name.
+    # arg name -> arg value which will be passed to a fixture or pseudo-fixture
+    # of the same name. (indirect or direct parametrization respectively)
     params: dict[str, object] = dataclasses.field(default_factory=dict)
     # arg name -> arg index.
     indices: dict[str, int] = dataclasses.field(default_factory=dict)
@@ -1155,31 +1159,8 @@ def get_direct_param_fixture_func(request: FixtureRequest) -> Any:
     return request.param
 
 
-class DirectParamFixtureDef(FixtureDef[FixtureValue]):
-    """A custom FixtureDef for direct parametrization fixtures.
-
-    Each parameter in direct parametrization is desugared to a parametrized
-    fixture which returns the direct parameterization value as its param.
-    We use this custom type as a "marker" for this type of FixtureDef, but
-    usually behaves like any other FixtureDef.
-    """
-
-    def __init__(self, *, node: nodes.Node, argname: str, scope: Scope) -> None:
-        super().__init__(
-            config=node.config,
-            baseid=NOTSET,
-            argname=argname,
-            func=get_direct_param_fixture_func,
-            scope=scope,
-            params=None,
-            ids=None,
-            node=node,
-            _ispytest=True,
-        )
-
-
-# Used for storing fixturedefs for direct parametrization.
-name2directparamfixturedef_key = StashKey[dict[str, DirectParamFixtureDef[object]]]()
+# Used for storing pseudo fixturedefs for direct parametrization.
+name2pseudofixturedef_key = StashKey[dict[str, FixtureDef[Any]]]()
 
 
 @final
@@ -1234,7 +1215,7 @@ class Metafunc:
         argvalues: Iterable[ParameterSet | Sequence[object] | object],
         indirect: bool | Sequence[str] = False,
         ids: Iterable[object | None] | Callable[[Any], object | None] | None = None,
-        scope: ScopeName | None = None,
+        scope: _ScopeName | None = None,
         *,
         _param_mark: Mark | None = None,
     ) -> None:
@@ -1265,12 +1246,6 @@ class Metafunc:
             If N argnames were specified, argvalues must be a list of
             N-tuples, where each tuple-element specifies a value for its
             respective argname.
-
-            .. versionchanged:: 9.1
-
-                Passing a non-:class:`~collections.abc.Collection` iterable
-                (such as a generator or iterator) is deprecated. See
-                :ref:`parametrize-iterators` for details.
 
         :param indirect:
             A list of arguments' names (subset of argnames) or a boolean.
@@ -1352,20 +1327,18 @@ class Metafunc:
             object.__setattr__(_param_mark._param_ids_from, "_param_ids_generated", ids)
 
         # Calculate directness.
-        arg_directness = _resolve_args_directness(
-            argnames, indirect, self.definition.nodeid
-        )
+        arg_directness = self._resolve_args_directness(argnames, indirect)
         self._params_directness.update(arg_directness)
 
         # Add direct parametrizations as fixturedefs to arg2fixturedefs by
-        # registering artificial DirectParamFixtureDef's such that later at test
+        # registering artificial "pseudo" FixtureDef's such that later at test
         # setup time we can rely on FixtureDefs to exist for all argnames.
         node = None
-        # For scopes higher than function, a DirectParamFixtureDef might have
+        # For scopes higher than function, a "pseudo" FixtureDef might have
         # already been created for the scope. We thus store and cache the
-        # DirectParamFixtureDef on the node related to the scope.
+        # FixtureDef on the node related to the scope.
         if scope_ is Scope.Function:
-            name2directparamfixturedef = None
+            name2pseudofixturedef = None
         else:
             collector = self.definition.parent
             assert collector is not None
@@ -1382,26 +1355,28 @@ class Metafunc:
                     node = collector.session
                 else:
                     assert False, f"Unhandled missing scope: {scope}"
-            default: dict[str, DirectParamFixtureDef[object]] = {}
-            name2directparamfixturedef = node.stash.setdefault(
-                name2directparamfixturedef_key, default
+            default: dict[str, FixtureDef[Any]] = {}
+            name2pseudofixturedef = node.stash.setdefault(
+                name2pseudofixturedef_key, default
             )
         for argname in argnames:
             if arg_directness[argname] == "indirect":
                 continue
-            if (
-                name2directparamfixturedef is not None
-                and argname in name2directparamfixturedef
-            ):
-                fixturedef = name2directparamfixturedef[argname]
+            if name2pseudofixturedef is not None and argname in name2pseudofixturedef:
+                fixturedef = name2pseudofixturedef[argname]
             else:
-                fixturedef = DirectParamFixtureDef(
-                    node=self.definition.session,
+                fixturedef = FixtureDef(
+                    config=self.config,
+                    baseid="",
                     argname=argname,
+                    func=get_direct_param_fixture_func,
                     scope=scope_,
+                    params=None,
+                    ids=None,
+                    _ispytest=True,
                 )
-                if name2directparamfixturedef is not None:
-                    name2directparamfixturedef[argname] = fixturedef
+                if name2pseudofixturedef is not None:
+                    name2pseudofixturedef[argname] = fixturedef
             self._arg2fixturedefs[argname] = [fixturedef]
 
         # Create the new calls: if we are parametrize() multiple times (by applying the decorator
@@ -1454,7 +1429,7 @@ class Metafunc:
             ids_ = None
         else:
             idfn = None
-            ids_ = self._validate_ids(ids, parametersets)
+            ids_ = self._validate_ids(ids, parametersets, self.function.__name__)
         id_maker = IdMaker(
             argnames,
             parametersets,
@@ -1462,6 +1437,7 @@ class Metafunc:
             ids_,
             self.config,
             nodeid=nodeid,
+            func_name=self.function.__name__,
         )
         return id_maker.make_unique_parameterset_ids()
 
@@ -1469,6 +1445,7 @@ class Metafunc:
         self,
         ids: Iterable[object | None],
         parametersets: Sequence[ParameterSet],
+        func_name: str,
     ) -> list[object | None]:
         try:
             num_ids = len(ids)  # type: ignore[arg-type]
@@ -1481,13 +1458,49 @@ class Metafunc:
 
         # num_ids == 0 is a special case: https://github.com/pytest-dev/pytest/issues/1849
         if num_ids != len(parametersets) and num_ids != 0:
-            nodeid = self.definition.nodeid
-            fail(
-                f"In {nodeid}: {len(parametersets)} parameter sets specified, with different number of ids: {num_ids}",
-                pytrace=False,
-            )
+            msg = "In {}: {} parameter sets specified, with different number of ids: {}"
+            fail(msg.format(func_name, len(parametersets), num_ids), pytrace=False)
 
         return list(itertools.islice(ids, num_ids))
+
+    def _resolve_args_directness(
+        self,
+        argnames: Sequence[str],
+        indirect: bool | Sequence[str],
+    ) -> dict[str, Literal["indirect", "direct"]]:
+        """Resolve if each parametrized argument must be considered an indirect
+        parameter to a fixture of the same name, or a direct parameter to the
+        parametrized function, based on the ``indirect`` parameter of the
+        parametrized() call.
+
+        :param argnames:
+            List of argument names passed to ``parametrize()``.
+        :param indirect:
+            Same as the ``indirect`` parameter of ``parametrize()``.
+        :returns
+            A dict mapping each arg name to either "indirect" or "direct".
+        """
+        arg_directness: dict[str, Literal["indirect", "direct"]]
+        if isinstance(indirect, bool):
+            arg_directness = dict.fromkeys(
+                argnames, "indirect" if indirect else "direct"
+            )
+        elif isinstance(indirect, Sequence):
+            arg_directness = dict.fromkeys(argnames, "direct")
+            for arg in indirect:
+                if arg not in argnames:
+                    fail(
+                        f"In {self.function.__name__}: indirect fixture '{arg}' doesn't exist",
+                        pytrace=False,
+                    )
+                arg_directness[arg] = "indirect"
+        else:
+            fail(
+                f"In {self.function.__name__}: expected Sequence or boolean"
+                f" for indirect, got {type(indirect).__name__}",
+                pytrace=False,
+            )
+        return arg_directness
 
     def _validate_if_using_arg_names(
         self,
@@ -1501,12 +1514,12 @@ class Metafunc:
         :raises ValueError: If validation fails.
         """
         default_arg_names = set(get_default_arg_names(self.function))
-        nodeid = self.definition.nodeid
+        func_name = self.function.__name__
         for arg in argnames:
             if arg not in self.fixturenames:
                 if arg in default_arg_names:
                     fail(
-                        f"In {nodeid}: function already takes an argument '{arg}' with a default value",
+                        f"In {func_name}: function already takes an argument '{arg}' with a default value",
                         pytrace=False,
                     )
                 else:
@@ -1515,7 +1528,7 @@ class Metafunc:
                     else:
                         name = "fixture" if indirect else "argument"
                     fail(
-                        f"In {nodeid}: function uses no {name} '{arg}'",
+                        f"In {func_name}: function uses no {name} '{arg}'",
                         pytrace=False,
                     )
 

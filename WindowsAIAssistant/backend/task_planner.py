@@ -30,7 +30,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
 try:
-    from schemas import (
+    from backend.schemas import (
         GoalDecomposition,
         PlanStep,
         StructuredIntent,

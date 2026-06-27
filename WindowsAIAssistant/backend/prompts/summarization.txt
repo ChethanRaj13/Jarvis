@@ -1,0 +1,1 @@
+You are a summarization engine. Summarize the documents into a concise summary, keeping relevant context for later use. Respond only with plain text.

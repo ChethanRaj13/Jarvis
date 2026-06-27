@@ -7,7 +7,6 @@ from collections.abc import Generator
 from collections.abc import Mapping
 from collections.abc import MutableMapping
 from contextlib import contextmanager
-import importlib
 import os
 from pathlib import Path
 import re
@@ -18,8 +17,6 @@ from typing import overload
 from typing import TypeVar
 import warnings
 
-from _pytest.compat import NOTSET
-from _pytest.compat import NotSetType
 from _pytest.deprecated import MONKEYPATCH_LEGACY_NAMESPACE_PACKAGES
 from _pytest.fixtures import fixture
 from _pytest.warning_types import PytestWarning
@@ -67,7 +64,7 @@ def resolve(name: str) -> object:
     parts = name.split(".")
 
     used = parts.pop(0)
-    found: object = importlib.import_module(used)
+    found: object = __import__(used)
     for part in parts:
         used += "." + part
         try:
@@ -79,7 +76,7 @@ def resolve(name: str) -> object:
         # We use explicit un-nesting of the handling block in order
         # to avoid nested exceptions.
         try:
-            importlib.import_module(used)
+            __import__(used)
         except ImportError as ex:
             expected = str(ex).split()[-1]
             if expected == used:
@@ -108,6 +105,14 @@ def derive_importpath(import_path: str, raising: bool) -> tuple[str, object]:
     if raising:
         annotated_getattr(target, attr, ann=module)
     return attr, target
+
+
+class Notset:
+    def __repr__(self) -> str:
+        return "<notset>"
+
+
+notset = Notset()
 
 
 @final
@@ -162,7 +167,7 @@ class MonkeyPatch:
         self,
         target: str,
         name: object,
-        value: NotSetType = ...,
+        value: Notset = ...,
         raising: bool = ...,
     ) -> None: ...
 
@@ -179,7 +184,7 @@ class MonkeyPatch:
         self,
         target: str | object,
         name: object | str,
-        value: object = NOTSET,
+        value: object = notset,
         raising: bool = True,
     ) -> None:
         """
@@ -220,7 +225,7 @@ class MonkeyPatch:
         __tracebackhide__ = True
         import inspect
 
-        if value is NOTSET:
+        if isinstance(value, Notset):
             if not isinstance(target, str):
                 raise TypeError(
                     "use setattr(target, name, value) or "
@@ -237,20 +242,20 @@ class MonkeyPatch:
                     "import string"
                 )
 
-        oldval = getattr(target, name, NOTSET)
-        if raising and oldval is NOTSET:
+        oldval = getattr(target, name, notset)
+        if raising and oldval is notset:
             raise AttributeError(f"{target!r} has no attribute {name!r}")
 
         # avoid class descriptors like staticmethod/classmethod
         if inspect.isclass(target):
-            oldval = target.__dict__.get(name, NOTSET)
-        setattr(target, name, value)
+            oldval = target.__dict__.get(name, notset)
         self._setattr.append((target, name, oldval))
+        setattr(target, name, value)
 
     def delattr(
         self,
         target: object | str,
-        name: str | NotSetType = NOTSET,
+        name: str | Notset = notset,
         raising: bool = True,
     ) -> None:
         """Delete attribute ``name`` from ``target``.
@@ -265,7 +270,7 @@ class MonkeyPatch:
         __tracebackhide__ = True
         import inspect
 
-        if name is NOTSET:
+        if isinstance(name, Notset):
             if not isinstance(target, str):
                 raise TypeError(
                     "use delattr(target, name) or "
@@ -278,16 +283,16 @@ class MonkeyPatch:
             if raising:
                 raise AttributeError(name)
         else:
-            oldval = getattr(target, name, NOTSET)
+            oldval = getattr(target, name, notset)
             # Avoid class descriptors like staticmethod/classmethod.
             if inspect.isclass(target):
-                oldval = target.__dict__.get(name, NOTSET)
+                oldval = target.__dict__.get(name, notset)
             self._setattr.append((target, name, oldval))
             delattr(target, name)
 
     def setitem(self, dic: Mapping[K, V], name: K, value: V) -> None:
         """Set dictionary entry ``name`` to value."""
-        self._setitem.append((dic, name, dic.get(name, NOTSET)))
+        self._setitem.append((dic, name, dic.get(name, notset)))
         # Not all Mapping types support indexing, but MutableMapping doesn't support TypedDict
         dic[name] = value  # type: ignore[index]
 
@@ -301,7 +306,7 @@ class MonkeyPatch:
             if raising:
                 raise KeyError(name)
         else:
-            self._setitem.append((dic, name, dic.get(name, NOTSET)))
+            self._setitem.append((dic, name, dic.get(name, notset)))
             # Not all Mapping types support indexing, but MutableMapping doesn't support TypedDict
             del dic[name]  # type: ignore[attr-defined]
 
@@ -405,13 +410,13 @@ class MonkeyPatch:
             Prefer to use :meth:`context() <pytest.MonkeyPatch.context>` instead.
         """
         for obj, name, value in reversed(self._setattr):
-            if value is not NOTSET:
+            if value is not notset:
                 setattr(obj, name, value)
             else:
                 delattr(obj, name)
         self._setattr[:] = []
         for dictionary, key, value in reversed(self._setitem):
-            if value is NOTSET:
+            if value is notset:
                 try:
                     # Not all Mapping types support indexing, but MutableMapping doesn't support TypedDict
                     del dictionary[key]  # type: ignore[attr-defined]

@@ -61,15 +61,8 @@ class SubtestContext:
     msg: str | None
     kwargs: Mapping[str, Any]
 
-    def __post_init__(self) -> None:
-        # Brute-force the returned kwargs dict to be JSON serializable (pytest-dev/pytest-xdist#1273).
-        object.__setattr__(
-            self, "kwargs", {k: saferepr(v) for (k, v) in self.kwargs.items()}
-        )
-
     def _to_json(self) -> dict[str, Any]:
-        result = dataclasses.asdict(self)
-        return result
+        return dataclasses.asdict(self)
 
     @classmethod
     def _from_json(cls, d: dict[str, Any]) -> Self:
@@ -91,7 +84,7 @@ class SubtestReport(TestReport):
             parts.append(f"[{self.context.msg}]")
         if self.context.kwargs:
             params_desc = ", ".join(
-                f"{k}={v}" for (k, v) in self.context.kwargs.items()
+                f"{k}={saferepr(v)}" for (k, v) in self.context.kwargs.items()
             )
             parts.append(f"({params_desc})")
         return " ".join(parts) or "(<subtest>)"
@@ -360,7 +353,7 @@ failed_subtests_key = StashKey[defaultdict[str, int]]()
 
 
 def pytest_configure(config: Config) -> None:
-    config.stash[failed_subtests_key] = defaultdict(int)
+    config.stash[failed_subtests_key] = defaultdict(lambda: 0)
 
 
 @hookimpl(tryfirst=True)

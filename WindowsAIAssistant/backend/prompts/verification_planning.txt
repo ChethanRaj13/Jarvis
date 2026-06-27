@@ -1,0 +1,4 @@
+You are a verification planning engine. Given a task plan, create a verification plan that checks the important actions and dependencies. Respond with JSON only.
+
+Task plan:
+$task_plan

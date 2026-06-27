@@ -8,6 +8,8 @@ from collections.abc import Mapping
 from collections.abc import Sequence
 import dataclasses
 import inspect
+from inspect import CO_VARARGS
+from inspect import CO_VARKEYWORDS
 from io import StringIO
 import os
 from pathlib import Path
@@ -85,11 +87,10 @@ class Code:
     def path(self) -> Path | str:
         """Return a path object pointing to source code, or an ``str`` in
         case of ``OSError`` / non-existing file."""
-        filename = inspect.getfile(self.raw)
-        if not filename:
+        if not self.raw.co_filename:
             return ""
         try:
-            p = absolutepath(filename)
+            p = absolutepath(self.raw.co_filename)
             # maybe don't try this checking
             if not p.exists():
                 raise OSError("path check failed.")
@@ -97,7 +98,7 @@ class Code:
         except OSError:
             # XXX maybe try harder like the weird logic
             # in the standard lib [linecache.updatecache] does?
-            return filename
+            return self.raw.co_filename
 
     @property
     def fullsource(self) -> Source | None:
@@ -116,17 +117,13 @@ class Code:
         If 'var' is set True also return the names of the variable and
         keyword arguments when present.
         """
-        # inspect.getargs merges positional and kwonly into a single list;
-        # co_argcount is needed to exclude kwonly when var=False.
-        args, varargs, varkw = inspect.getargs(self.raw)
-        if not var:
-            return tuple(args[: self.raw.co_argcount])
-        result = list(args)
-        if varargs is not None:
-            result.append(varargs)
-        if varkw is not None:
-            result.append(varkw)
-        return tuple(result)
+        # Handy shortcut for getting args.
+        raw = self.raw
+        argcount = raw.co_argcount
+        if var:
+            argcount += raw.co_flags & CO_VARARGS
+            argcount += raw.co_flags & CO_VARKEYWORDS
+        return raw.co_varnames[:argcount]
 
 
 class Frame:
@@ -646,13 +643,10 @@ class ExceptionInfo(Generic[E]):
     def exconly(self, tryshort: bool = False) -> str:
         """Return the exception as a string.
 
-        This is usually a single line "<exception type>: <exception str>", but
-        may also include additional lines for the exception notes, and detailed
-        information for SyntaxError's.
-
-        :param tryshort:
-            If true, and the exception is an AssertionError, strip
-            'AssertionError: ' from the beginning.
+        When 'tryshort' resolves to True, and the exception is an
+        AssertionError, only the actual exception part of the exception
+        representation is returned (so 'AssertionError: ' is removed from
+        the beginning).
         """
 
         def _get_single_subexc(
@@ -671,8 +665,7 @@ class ExceptionInfo(Generic[E]):
         ):
             return f"{subexc!r} [single exception in {type(self.value).__name__}]"
 
-        lines = format_exception_only(self.value)
-        # The lines already include line separators.
+        lines = format_exception_only(self.type, self.value)
         text = "".join(lines)
         text = text.rstrip()
         if tryshort:
@@ -711,11 +704,9 @@ class ExceptionInfo(Generic[E]):
     ) -> ReprExceptionInfo | ExceptionChainRepr:
         """Return str()able representation of this exception info.
 
-        The formatting parameters are ineffective if ``style="native"``,
-        since in this case the native formatting is used.
-
         :param bool showlocals:
             Show locals per traceback entry.
+            Ignored if ``style=="native"``.
 
         :param str style:
             long|short|line|no|native|value traceback style.
@@ -731,19 +722,19 @@ class ExceptionInfo(Generic[E]):
               variable ``__tracebackhide__ = True``.
             * If a callable, delegates the filtering to the callable.
 
+            Ignored if ``style`` is ``"native"``.
+
         :param bool funcargs:
-            Show function arguments per traceback entry.
+            Show fixtures ("funcargs" for legacy purposes) per traceback entry.
 
         :param bool truncate_locals:
-            Whether to show a size-limited `repr()` of locals, or a full
-            pretty-printing.
+            With ``showlocals==True``, make sure locals can be safely represented as strings.
 
         :param bool truncate_args:
-            Whether to show a size-limited truncated `repr()` of function
-            arguments, or a full pretty-printing.
+            With ``showargs==True``, make sure args can be safely represented as strings.
 
         :param bool chain:
-            If chained exceptions should be shown.
+            If chained exceptions in Python 3 should be shown.
 
         .. versionchanged:: 3.9
 
@@ -761,7 +752,7 @@ class ExceptionInfo(Generic[E]):
                 reprcrash=self._getreprcrash(),
             )
 
-        fmt = ExceptionInfoFormatter(
+        fmt = FormattedExcinfo(
             showlocals=showlocals,
             style=style,
             abspath=abspath,
@@ -872,19 +863,14 @@ TracebackFilter: TypeAlias = bool | Callable[[ExceptionInfo[BaseException]], Tra
 
 
 @dataclasses.dataclass
-class ExceptionInfoFormatter:
-    """Helper object to format ExceptionInfo's and individual exception parts
-    into TerminalRepr's.
-
-    See :func:`ExceptionInfo.getrepr` for parameters.
-    """
+class FormattedExcinfo:
+    """Presenting information about failing Functions and Generators."""
 
     # for traceback entries
     flow_marker: ClassVar = ">"
     fail_marker: ClassVar = "E"
 
     showlocals: bool = False
-    # Note: "native" is handled outside of ExceptionInfoFormatter.
     style: TracebackStyle = "long"
     abspath: bool = True
     tbfilter: TracebackFilter = True
@@ -892,7 +878,6 @@ class ExceptionInfoFormatter:
     truncate_locals: bool = True
     truncate_args: bool = True
     chain: bool = True
-
     astcache: dict[str | Path, ast.AST] = dataclasses.field(
         default_factory=dict, init=False, repr=False
     )
@@ -1040,8 +1025,6 @@ class ExceptionInfoFormatter:
     def repr_locals(self, locals: Mapping[str, object]) -> ReprLocals | None:
         if self.showlocals:
             lines = []
-            # Variables starting with `@` are helpers injected by assertion
-            # rewriting, not user variables, so hide them.
             keys = [loc for loc in locals if loc[0] != "@"]
             keys.sort()
             for name in keys:
@@ -1193,7 +1176,7 @@ class ExceptionInfoFormatter:
         repr_chain: list[tuple[ReprTraceback, ReprFileLocation | None, str | None]] = []
         e: BaseException | None = excinfo.value
         excinfo_: ExceptionInfo[BaseException] | None = excinfo
-        description = None
+        descr = None
         seen: set[int] = set()
         while e is not None and id(e) not in seen:
             seen.add(id(e))
@@ -1206,19 +1189,18 @@ class ExceptionInfoFormatter:
                 if isinstance(e, BaseExceptionGroup):
                     # don't filter any sub-exceptions since they shouldn't have any internal frames
                     traceback = filter_excinfo_traceback(self.tbfilter, excinfo)
-                    extraline = (
-                        "All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames."
-                        if not traceback
-                        else None
-                    )
                     reprtraceback = ReprTracebackNative(
                         format_exception(
                             type(excinfo.value),
                             excinfo.value,
                             traceback[0]._rawentry if traceback else None,
-                        ),
-                        extraline=extraline,
+                        )
                     )
+                    if not traceback:
+                        reprtraceback.extraline = (
+                            "All traceback entries are hidden. "
+                            "Pass `--full-trace` to see hidden and internal frames."
+                        )
 
                 else:
                     reprtraceback = self.repr_traceback(excinfo_)
@@ -1228,18 +1210,18 @@ class ExceptionInfoFormatter:
                 # ExceptionInfo objects require a full traceback to work.
                 reprtraceback = ReprTracebackNative(format_exception(type(e), e, None))
                 reprcrash = None
-            repr_chain.append((reprtraceback, reprcrash, description))
+            repr_chain += [(reprtraceback, reprcrash, descr)]
 
             if e.__cause__ is not None and self.chain:
                 e = e.__cause__
                 excinfo_ = ExceptionInfo.from_exception(e) if e.__traceback__ else None
-                description = "The above exception was the direct cause of the following exception:"
+                descr = "The above exception was the direct cause of the following exception:"
             elif (
                 e.__context__ is not None and not e.__suppress_context__ and self.chain
             ):
                 e = e.__context__
                 excinfo_ = ExceptionInfo.from_exception(e) if e.__traceback__ else None
-                description = "During handling of the above exception, another exception occurred:"
+                descr = "During handling of the above exception, another exception occurred:"
             else:
                 e = None
         repr_chain.reverse()
@@ -1248,9 +1230,6 @@ class ExceptionInfoFormatter:
 
 @dataclasses.dataclass(eq=False)
 class TerminalRepr:
-    """Base class for terminal representations -- pieces of data that display
-    themselves to a terminal."""
-
     def __str__(self) -> str:
         # FYI this is called from pytest-xdist's serialization of exception
         # information.
@@ -1266,17 +1245,10 @@ class TerminalRepr:
         raise NotImplementedError()
 
 
+# This class is abstract -- only subclasses are instantiated.
 @dataclasses.dataclass(eq=False)
 class ExceptionRepr(TerminalRepr):
-    """Base class for exception terminal representations.
-
-    The representation generally contains:
-    - The exception traceback (`reprtraceback`)
-    - The exception message and location (`reprcrash`)
-    - Separated, titled sections with additional data (pytest core doesn't use
-      this currently).
-    """
-
+    # Provided by subclasses.
     reprtraceback: ReprTraceback
     reprcrash: ReprFileLocation | None
     sections: list[tuple[str, str, str]] = dataclasses.field(
@@ -1294,9 +1266,6 @@ class ExceptionRepr(TerminalRepr):
 
 @dataclasses.dataclass(eq=False)
 class ExceptionChainRepr(ExceptionRepr):
-    """A chain of exceptions, separated by descriptions (e.g. "The above
-    exception was the direct cause of the following exception")."""
-
     chain: Sequence[tuple[ReprTraceback, ReprFileLocation | None, str | None]]
 
     def __init__(
@@ -1312,19 +1281,18 @@ class ExceptionChainRepr(ExceptionRepr):
         self.chain = chain
 
     def toterminal(self, tw: TerminalWriter) -> None:
-        for reprtraceback, reprcrash, description in self.chain:
-            reprtraceback.toterminal(tw)
-            if description is not None:
+        for element in self.chain:
+            element[0].toterminal(tw)
+            if element[2] is not None:
                 tw.line("")
-                tw.line(description, yellow=True)
+                tw.line(element[2], yellow=True)
         super().toterminal(tw)
 
 
 @dataclasses.dataclass(eq=False)
 class ReprExceptionInfo(ExceptionRepr):
-    """A single exception with optional extra details (function arguments,
-    function locals, file location) and possible extra line and sections emitted
-    at the end."""
+    reprtraceback: ReprTraceback
+    reprcrash: ReprFileLocation | None
 
     def toterminal(self, tw: TerminalWriter) -> None:
         self.reprtraceback.toterminal(tw)
@@ -1333,9 +1301,6 @@ class ReprExceptionInfo(ExceptionRepr):
 
 @dataclasses.dataclass(eq=False)
 class ReprTraceback(TerminalRepr):
-    """A traceback with optional extra details (function arguments, function
-    locals, file location) and possible extra line emitted at the end."""
-
     reprentries: Sequence[ReprEntry | ReprEntryNative]
     extraline: str | None
     style: TracebackStyle
@@ -1360,29 +1325,14 @@ class ReprTraceback(TerminalRepr):
 
 
 class ReprTracebackNative(ReprTraceback):
-    """A traceback in native style.
-
-    The lines are emitted as is; uses a single entry for the entire native
-    traceback.
-    """
-
-    def __init__(self, tblines: Sequence[str], *, extraline: str | None = None) -> None:
+    def __init__(self, tblines: Sequence[str]) -> None:
         self.reprentries = [ReprEntryNative(tblines)]
-        self.extraline = extraline
+        self.extraline = None
         self.style = "native"
 
 
 @dataclasses.dataclass(eq=False)
 class ReprEntryNative(TerminalRepr):
-    """An entry in a traceback in native style.
-
-    Emits the lines as is. The lines are assumed to include the line separators.
-
-    [Note that we currently use a single "entry" for the entire native
-    traceback, so this is a bit misleading, but there's no point trying to parse
-    or split a native traceback.]
-    """
-
     lines: Sequence[str]
 
     style: ClassVar[TracebackStyle] = "native"
@@ -1393,9 +1343,6 @@ class ReprEntryNative(TerminalRepr):
 
 @dataclasses.dataclass(eq=False)
 class ReprEntry(TerminalRepr):
-    """An entry in a traceback with possible extra details (function arguments,
-    function locals, source snippet, function's file and line)."""
-
     lines: Sequence[str]
     reprfuncargs: ReprFuncArgs | None
     reprlocals: ReprLocals | None
@@ -1430,7 +1377,7 @@ class ReprEntry(TerminalRepr):
         # separate indents and source lines that are not failures: we want to
         # highlight the code but not the indentation, which may contain markers
         # such as ">   assert 0"
-        fail_marker = f"{ExceptionInfoFormatter.fail_marker}   "
+        fail_marker = f"{FormattedExcinfo.fail_marker}   "
         indent_size = len(fail_marker)
         indents: list[str] = []
         source_lines: list[str] = []
@@ -1481,12 +1428,6 @@ class ReprEntry(TerminalRepr):
 
 @dataclasses.dataclass(eq=False)
 class ReprFileLocation(TerminalRepr):
-    """A message at a file location, using the `<path>:<lineno>: <message>`
-    format that most editors understand.
-
-    Only the first line of the message is emitted.
-    """
-
     path: str
     lineno: int
     message: str
@@ -1495,6 +1436,8 @@ class ReprFileLocation(TerminalRepr):
         self.path = str(self.path)
 
     def toterminal(self, tw: TerminalWriter) -> None:
+        # Filename and lineno output for each entry, using an output format
+        # that most editors understand.
         msg = self.message
         i = msg.find("\n")
         if i != -1:
@@ -1505,19 +1448,15 @@ class ReprFileLocation(TerminalRepr):
 
 @dataclasses.dataclass(eq=False)
 class ReprLocals(TerminalRepr):
-    """Function local variables (pre-formatted)."""
-
     lines: Sequence[str]
 
-    def toterminal(self, tw: TerminalWriter, indent: str = "") -> None:
+    def toterminal(self, tw: TerminalWriter, indent="") -> None:
         for line in self.lines:
             tw.line(indent + line)
 
 
 @dataclasses.dataclass(eq=False)
 class ReprFuncArgs(TerminalRepr):
-    """Function arguments - name = value, comma separated."""
-
     args: Sequence[tuple[str, object]]
 
     def toterminal(self, tw: TerminalWriter) -> None:
