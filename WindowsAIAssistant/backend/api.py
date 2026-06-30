@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from .backend_router import RequestGateway
 from .config import Settings
+from .ai.execution_planner import ExecutionPlanner
 from .ai.schemas import (
     ChatRespondRequest,
     ChatRespondResponse,
@@ -55,6 +56,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("intent-api")
 
 settings = Settings.load()
+execution_planner = ExecutionPlanner()
 app = FastAPI(title="Jarvis AI Service", version="1.2.0")
 
 app.add_middleware(
@@ -93,6 +95,17 @@ class ExecutionCommand(BaseModel):
     command: str
     description: str
     tool: str | None = None
+
+
+class CalendarParseRequest(BaseModel):
+    text: str
+
+
+class CalendarParseResponse(BaseModel):
+    date: str
+    time: str
+    message: str
+    description: str = ""
 
 
 class ExecutionResponse(BaseModel):
@@ -172,6 +185,80 @@ def plan_text(request: ParseRequest) -> dict:
     }
 
 
+@app.post("/parse-calendar", response_model=CalendarParseResponse)
+def parse_calendar(request: CalendarParseRequest) -> CalendarParseResponse:
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="`text` must not be empty.")
+
+    try:
+        fields = execution_planner._extract_calendar_fields(request.text)
+    except Exception as exc:
+        logger.exception("Calendar parse failed for: %s", request.text)
+        raise HTTPException(status_code=500, detail=f"Calendar parse failed: {exc}") from exc
+
+    return CalendarParseResponse(
+        date=fields.date,
+        time=fields.time,
+        message=fields.message,
+        description=getattr(fields, 'description', ''),
+    )
+
+
+app.add_api_route("/parse-calender", parse_calendar, methods=["POST"], response_model=CalendarParseResponse)
+app.add_api_route("/api/v1/parse-calendar", parse_calendar, methods=["POST"], response_model=CalendarParseResponse)
+app.add_api_route("/api/v1/parse-calender", parse_calendar, methods=["POST"], response_model=CalendarParseResponse)
+
+
+@app.post("/execute", response_model=ExecutionResponse)
+def execute_steps(request: ExecuteRequest) -> ExecutionResponse:
+    if not request.steps:
+        return ExecutionResponse(logs=["No execution steps were provided."], commands=[], executed=False)
+
+    logs: list[str] = []
+    commands: list[ExecutionCommand] = []
+
+    try:
+        plan = execution_planner.generate_commands(request.steps)
+    except Exception as exc:
+        logger.exception("Execution command generation failed")
+        return ExecutionResponse(
+            logs=[f"Command generation failed: {exc}"],
+            commands=[],
+            executed=False,
+        )
+
+    for command_entry in plan.commands:
+        commands.append(
+            ExecutionCommand(
+                command=command_entry.command,
+                description=command_entry.description,
+                tool=command_entry.tool,
+            )
+        )
+        # Human-readable single-line summary for each generated step
+        logs.append(
+            f"Step {command_entry.step_number}: {command_entry.command} — {command_entry.description} (tool={command_entry.tool})"
+        )
+
+    verification_payload: dict[str, Any] = {
+        "verify": request.verify,
+        "target_resource": request.target_resource,
+        "status": "ready",
+    }
+
+    if request.verify:
+        verification_payload["message"] = "Verification requested for the generated execution plan."
+        verification_payload["evidence"] = {
+            "resource": request.target_resource,
+            "commands_generated": len(commands),
+            "executed": False,
+        }
+
+    logs.append("Backend generated the commands but did not execute them. Frontend should run the returned commands locally.")
+
+    return ExecutionResponse(logs=logs, commands=commands, verification=verification_payload, executed=False)
+
+
 def _extract_target_path(step: str, fallback: str = "output.txt") -> str:
     normalized = step.strip()
     if not normalized:
@@ -234,19 +321,30 @@ def execute_steps(request: ExecuteRequest) -> ExecutionResponse:
     if not request.steps:
         return ExecutionResponse(logs=["No execution steps were provided."], commands=[], executed=False)
 
-    commands: list[ExecutionCommand] = []
     logs: list[str] = []
+    commands: list[ExecutionCommand] = []
 
-    for index, step in enumerate(request.steps, start=1):
-        normalized = step.strip()
-        if not normalized:
-            continue
+    try:
+        plan = execution_planner.generate_commands(request.steps)
+    except Exception as exc:
+        logger.exception("Execution command generation failed")
+        return ExecutionResponse(
+            logs=[f"Command generation failed: {exc}"],
+            commands=[],
+            executed=False,
+        )
 
-        command, tool, description = _build_command(normalized)
-        commands.append(ExecutionCommand(command=command, description=description, tool=tool))
-        logs.append(f"Step {index}: {normalized}")
-        logs.append(f"Generated command: {command}")
-        logs.append(f"Tool: {tool}")
+    for command_entry in plan.commands:
+        commands.append(
+            ExecutionCommand(
+                command=command_entry.command,
+                description=command_entry.description,
+                tool=command_entry.tool,
+            )
+        )
+        logs.append(f"Step {command_entry.step_number}: {command_entry.command}")
+        logs.append(f"Description: {command_entry.description}")
+        logs.append(f"Tool: {command_entry.tool}")
 
     verification_payload: dict[str, Any] = {
         "verify": request.verify,

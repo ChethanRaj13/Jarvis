@@ -8,4 +8,11 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="bin\**;obj\**;obj-*\**" />
+    <EmbeddedResource Remove="bin\**;obj\**;obj-*\**" />
+    <None Remove="bin\**;obj\**;obj-*\**" />
+    <Page Remove="bin\**;obj\**;obj-*\**" />
+  </ItemGroup>
+
 </Project>

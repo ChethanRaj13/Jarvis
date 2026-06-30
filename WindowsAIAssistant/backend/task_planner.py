@@ -115,7 +115,12 @@ class TaskPlanner:
                     "description, and optionally a tool_or_method if a specific "
                     "tool, API, or method would be used.\n"
                     "Respond ONLY with JSON matching this schema, no extra text:\n"
-                    "{format_instructions}",
+                    "{format_instructions}\n"
+                    "If the sub-goal involves scheduling, meetings, reminders, appointments, "
+                    "or calendar events, do not mention Google Calendar, browser automation, "
+                    "clicking buttons, or web calendar services. Use only local Windows "
+                    "calendar language such as 'Create Windows Calendar event', 'Generate an ICS file', "
+                    "or 'Schedule an event in the Windows Calendar experience'."
                 ),
                 (
                     "human",
@@ -136,7 +141,18 @@ class TaskPlanner:
             raw_output = raw_chain.invoke(variables)
             content = raw_output.content if hasattr(raw_output, "content") else str(raw_output)
             cleaned = self._extract_json_block(content)
-            return parser.parse(cleaned)
+            try:
+                return parser.parse(cleaned)
+            except Exception:
+                return self._recover_steps(content, parser)
+
+    def _recover_steps(self, content: str, parser):
+        cleaned = self._extract_json_block(content)
+        cleaned = re.sub(r"\n", " ", cleaned)
+        cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
+        if "google calendar" in cleaned.lower():
+            cleaned = re.sub(r"google calendar", "Windows Calendar", cleaned, flags=re.IGNORECASE)
+        return parser.parse(cleaned)
 
     @staticmethod
     def _extract_json_block(content: str) -> str:
